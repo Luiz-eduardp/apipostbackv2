@@ -1,15 +1,13 @@
 import { Application, Router } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
-import * as path from "https://deno.land/std/path/mod.ts";
-import { exists } from "https://deno.land/std/fs/mod.ts";
+import { DB } from "https://deno.land/x/sqlite/mod.ts";
 
 const app = new Application();
 const router = new Router();
 
-const dbPath = path.join(Deno.cwd(), "database.db");
-const db = new sqlite3.Database(dbPath);
+const db = new DB("database.db"); // SQLite database instance
 
-await db.execute(`
+await db.query(`
   CREATE TABLE IF NOT EXISTS ip_records (
     id INTEGER PRIMARY KEY,
     user TEXT,
@@ -21,7 +19,7 @@ await db.execute(`
 
 // Função para resetar a base de dados a cada 24 horas
 setInterval(async () => {
-  await db.execute("DELETE FROM ip_records");
+  await db.query("DELETE FROM ip_records");
 }, 24 * 60 * 60 * 1000);
 
 app.use(oakCors()); // Enable CORS for All Routes
@@ -30,7 +28,7 @@ router.post("/postback", async (context) => {
   const { ip } = await context.request.body().value;
 
   try {
-    await db.execute(
+    await db.query(
       "INSERT INTO ip_records (ip, voted) VALUES (?, ?)",
       [ip, true],
     );
